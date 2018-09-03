@@ -1,0 +1,19 @@
+{
+  "name": "daggerhart/osprey",
+  "authors": [
+    {
+      "name": "Jonathan Daggerhart",
+      "email": "jonathan@daggerhart.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.4",
+    "composer/installers": "v1.0.12",
+    "twig/twig": "~1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Osprey\\": "src/"
+    }
+  }
+}
