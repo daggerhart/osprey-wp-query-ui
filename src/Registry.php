@@ -14,14 +14,14 @@ class Registry implements RegistryInterface {
 	/**
 	 * @var array
 	 */
-	protected $items = array();
+	protected $items = [];
 
 	/**
 	 * Set the entire array of items with a new array.
 	 *
 	 * @param $items
 	 */
-	public function __construct( $items ) {
+	public function __construct( $items = [] ) {
 		$this->items = $items;
 	}
 
@@ -42,8 +42,8 @@ class Registry implements RegistryInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function set( $key, $class ) {
-		$this->items[ $key ] = $class;
+	public function set( $key, $data ) {
+		$this->items[ $key ] = $data;
 	}
 
 }

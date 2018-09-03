@@ -27,7 +27,7 @@ class Renderer {
 	 * @return string
 	 */
 	function render() {
-		$type = Services::types()->get($this->query_post->meta('_osprey_query_type'));
+		$type = Services::queryTypes()->get($this->query_post->meta('_osprey_query_type'));
 		$query_args = $this->query_post->meta('_osprey_query_args');
 		if (empty($query_args)) {
 			$query_args = [];

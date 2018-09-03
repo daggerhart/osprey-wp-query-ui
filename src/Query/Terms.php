@@ -2,7 +2,7 @@
 
 namespace Osprey\Query;
 
-use Osprey\Entity\Term;
+use Osprey\Entity\AbstractEntity;
 
 /**
  * Class Terms
@@ -14,15 +14,16 @@ class Terms extends AbstractQuery {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function execute( $callback = NULL ) {
+	public function execute( $entity_class = null, $callback = NULL ) {
 		$this->query = new \WP_Term_Query( $this->arguments );
 
 		foreach ( $this->query->get_terms() as $term ) {
-			$item = new Term( $term );
+			/** @var AbstractEntity $item */
+			$item = is_a($entity_class, '\Osprey\Entity\AbstractEntity') ? new $entity_class( $term ) : null;
 			$this->results[ $item->id() ] = $item;
 
 			if ( is_callable( $callback ) ) {
-				call_user_func( $callback, $term );
+				call_user_func( $callback, $item, $term );
 			}
 		}
 

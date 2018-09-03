@@ -2,7 +2,7 @@
 
 namespace Osprey\Query;
 
-use Osprey\Entity\Post;
+use Osprey\Entity\AbstractEntity;
 
 /**
  * Class Posts
@@ -40,18 +40,20 @@ class Posts extends AbstractQuery {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function execute( $callback = null ) {
+	public function execute( $entity_class = null, $callback = null ) {
 		$arguments = $this->alterArguments( $this->arguments );
 		$this->query = new \WP_Query( $arguments );
 
 		if ( $this->query->have_posts() ) {
 			while ( $this->query->have_posts() ) {
 				$this->query->the_post();
-				$item = new Post( get_post() );
+				$post = get_post();
+				/** @var AbstractEntity $item */
+				$item = is_a($entity_class, '\Osprey\Entity\AbstractEntity') ? new $entity_class( $post ) : null;
 				$this->results[ $item->id() ] = $item;
 
 				if ( is_callable( $callback ) ) {
-					call_user_func( $callback, $item );
+					call_user_func( $callback, $item, $post );
 				}
 			}
 			wp_reset_query();

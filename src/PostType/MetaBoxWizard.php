@@ -28,13 +28,13 @@ class MetaBoxWizard extends AbstractMetaBox {
 
 		$query_types = [];
 
-		foreach (Services::types()->items() as $type => $item) {
+		foreach (Services::queryTypes()->items() as $type => $item) {
 			$query_types[$type] = $item['title'];
 		}
 
 		$form = $this->form();
 
-		print $form->render_field([
+		print $form->renderField([
 			'title' => __('Query Type'),
 			'type' => 'select',
 			'name' => 'query_type',
@@ -54,7 +54,7 @@ class MetaBoxWizard extends AbstractMetaBox {
 
 		$form = $this->form();
 
-		$query_type = $form->submitted_value('query_type');
+		$query_type = $form->submittedValue('query_type');
 
 		if ($query_type) {
 			update_post_meta($post_id, '_osprey_query_type', sanitize_text_field($query_type));

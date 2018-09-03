@@ -2,6 +2,11 @@
 
 namespace Osprey\Form;
 
+use Osprey\Form\Field\FieldInterface;
+use Osprey\Form\Style\StyleInterface;
+use Osprey\Registry;
+use Osprey\Services;
+
 /**
  * Class Form
  *
@@ -14,16 +19,16 @@ class Form {
 	 *
 	 * @var array
 	 */
-	public $default_form_args = array(
+	public $default_form_args = [
 		'id' => '',
-		'class' => array(),
+		'classes' => [],
 		'method' => 'POST',
 		'action' => '',
-		'attributes' => array(),
-		'style' => 'flat',
+		'attributes' => [],
+		'style' => 'default',
 		'field_prefix' => '',
-        'fields' => array(),
-	);
+        'fields' => [],
+	];
 
 	/**
 	 * Form settings (arguments). Combination of arguments provided to the
@@ -31,64 +36,40 @@ class Form {
 	 *
 	 * @var array
 	 */
-	public $form_args = array();
+	public $form_args = [];
 
 	/**
-	 * Form Styles
+	 * Form Styles registry.
 	 *
-	 * Array of keyed set of callbacks for determining the wrapping form and
-	 * field styles.
-	 *
-	 * Ex:
-	 * ---------
-	 *  array(
-	 *		'my_form_style' => array(
-	 *          'form_open'     => 'my_form_style_form_open_callback',
-	 *          'form_close'    => 'my_form_style_form_close_callback',
-	 *          'field_wrapper' => 'my_form_style_field_wrapper_callback',
-	 *      )
-	 *  )
-	 *
-	 * @see OspreyForm::form_open_flat()
-	 * @see OspreyForm::form_close_flat()
-	 * @see OspreyForm::field_wrapper_flat()
-	 *
-	 * @var array
+	 * @var Registry
 	 */
-	public $form_styles = array();
+	public $styles;
 
+	/**
+     * The form's current style.
+     *
+	 * @var StyleInterface
+	 */
+    public $style;
 
 	/**
 	 * Field Types
 	 *
-	 * Array of keyed set of callbacks for creating HTML output for a form field
-	 *
-	 * Ex:
-	 * ---------
-	 *
-	 * array(
-	 *      'my_field_type' => 'my_field_type_callback'
-	 * )
-	 *
-	 * function my_field_type_callback( $field = array() ) {}
-	 *
-	 * @see OspreyForm::template_textarea()
-	 *
-	 * @var array
+	 * @var Registry
 	 */
-	public $field_types = array();
+	public $field_types;
 
 	/**
 	 *  Necessary argument defaults for a working field
 	 *
 	 * @var array
 	 */
-	public $default_field_args = array(
+	public $default_field_args = [
 		'title' => '',
 		'description' => '',
 		'help' => '',
 		'type' => 'text',
-		'class' => array(),
+		'classes' => [],
 		'value' => '',
 		'name' => '',
 		'label_first' => TRUE,
@@ -98,7 +79,7 @@ class Form {
 		'name_prefix' => '',
 
 		// additional special attributes like size, rows, cols, etc
-		'attributes' => array(),
+		'attributes' => [],
 
 		// only for some field types
 		// options = array(),
@@ -106,93 +87,76 @@ class Form {
 		# generated automatically
 		#'form_name' => '',
 		#'id' => '',
-	);
+	];
 
 	/**
      * Array of field definitions.
      *
 	 * @var array
 	 */
-	public $fields = array();
+	public $fields = [];
 
 	/**
 	 * OspreyForm constructor.
 	 *
 	 * @param array $form_args
 	 */
-	function __construct( $form_args = array() ){
+	function __construct( $form_args = [] ) {
 		$this->form_args = array_replace( $this->default_form_args, $form_args );
 		$this->fields = $this->form_args['fields'];
-		$this->form_styles = $this->default_form_styles();
-		$this->field_types = $this->default_field_types();
+		$this->styles = Services::formStyles();
+		$this->style = $this->getFormStyle();
+		$this->field_types = Services::formFields();
 	}
 
 	/**
-	 * Core form styles
+	 * Simple conversion of an array to tml attributes string
 	 *
-	 * @return array
+	 * @param array $array
+	 * @param string $prefix
+	 *
+	 * @return string
 	 */
-	function default_form_styles(){
-		return array(
-			'flat' => array(
-				'form_open' => array( $this, 'form_open_flat' ),
-				'form_close' => array( $this, 'form_close_flat' ),
-				'field_wrapper' => array( $this, 'field_wrapper_flat' ),
-			),
-			'box' => array(
-				'form_open' => array( $this, 'form_open_flat' ),
-				'form_close' => array( $this, 'form_close_flat' ),
-				'field_wrapper' => array( $this, 'field_wrapper_box' ),
-			),
-			'inline' => array(
-				'form_open' => array( $this, 'form_open_flat' ),
-				'form_close' => array( $this, 'form_close_flat' ),
-				'field_wrapper' => array( $this, 'field_wrapper_inline' ),
-			),
-			'table' => array(
-				'form_open' => array( $this, 'form_open_table' ),
-				'form_close' => array( $this, 'form_close_table' ),
-				'field_wrapper' => array( $this, 'field_wrapper_table' ),
-			),
-		);
-	}
+	static public function attributes( $array = [], $prefix = '' ) {
+		$html = '';
 
-	/**
-	 * Core field types
-	 *
-	 * @return array
-	 */
-	function default_field_types(){
-		return array(
-			'text' => array( $this, 'template_input' ),
-			'hidden' => array( $this, 'template_input' ),
-			'number' => array( $this, 'template_input' ),
-			'email' => array( $this, 'template_input' ),
-			'submit' => array( $this, 'template_input' ),
-			'button' => array( $this, 'template_input' ),
-			'textarea' => array( $this, 'template_textarea' ),
-			'checkbox' => array( $this, 'template_checkbox' ),
-			'checkboxes' => array( $this, 'template_checkboxes' ),
-			'select' => array( $this, 'template_select' ),
-			'item_list' => array( $this, 'template_item_list' ),
-            'markup' => array( $this, 'template_markup' ),
-		);
+		foreach( $array as $key => $value ){
+			if ( !empty( $value ) ) {
+				$value = esc_attr( $value );
+				$html .= " {$prefix}{$key}='{$value}'";
+			}
+		}
+
+		return $html;
 	}
 
 	/**
 	 * Retrieve the current form_style array
 	 *
-	 * @return array
+	 * @return \Osprey\Form\Style\StyleInterface
 	 */
-	function get_form_style(){
-		// default to flat style
-		$style = $this->form_styles['flat'];
+	function getFormStyle() {
+	    $styles = $this->styles->items();
+	    $style = $styles['default'];
+	    $form_style = $this->form_args['style'];
 
-		if ( isset( $this->form_styles[ $this->form_args['style'] ] ) ){
-			$style = $this->form_styles[ $this->form_args['style'] ];
-		}
+	    if ( isset( $styles[ $form_style ] ) ) {
+	        $style = $styles[ $form_style ];
 
-		return $style;
+	        if ( class_exists( $style['class'] ) ) {
+	            $instance = new $style['class']();
+
+	            if ( is_a($instance, '\Osprey\Form\Style\StyleInterface') ) {
+	                $style_instance = $instance;
+                }
+            }
+        }
+
+        if ( empty( $style_instance ) ) {
+		    $style_instance = new $style['class']();
+        }
+
+		return $style_instance;
 	}
 
 	/**
@@ -200,7 +164,7 @@ class Form {
 	 *
 	 * @return array
 	 */
-	function get_form_attributes(){
+	function getFormAttributes() {
 		$atts_keys = array( 'id', 'action', 'method', 'class' );
 		$attributes = array();
 
@@ -214,65 +178,22 @@ class Form {
 			$attributes = array_replace( $attributes, $this->form_args['attributes'] );
 		}
 
-		if ( !empty( $attributes['class'] ) ) {
-			$attributes['class'] = implode( ' ', $attributes['class'] );
+		if ( !empty( $attributes['classes'] ) ) {
+			$attributes['class'] = implode( ' ', $attributes['classes'] );
 		}
 
 		return $attributes;
 	}
 
 	/**
-	 * Opening form html and form style html.
+     * Wrap the form fields in a form HTML element.
+     *
+	 * @param $form
 	 *
 	 * @return string
 	 */
-	function open(){
-		$output = $this->form_open();
-
-		$style = $this->get_form_style();
-
-		if ( is_callable( $style['form_open'] ) ){
-			$output.= call_user_func( $style['form_open'] );
-		}
-
-		return $output;
-	}
-
-	/**
-	 * Closing form html and form style html.
-	 *
-	 * @return string
-	 */
-	function close(){
-		$output = '';
-
-		$style = $this->get_form_style();
-
-		if ( is_callable( $style['form_close'] ) ){
-			$output.= call_user_func( $style['form_close'] );
-		}
-
-		$output.= $this->form_close();
-
-		return $output;
-	}
-
-	/**
-     * Form html open.
-     *
-	 * @return string
-	 */
-	function form_open() {
-	    return '<form ' . $this->attributes( $this->get_form_attributes() ). '>';
-    }
-
-	/**
-     * Form html close.
-     *
-	 * @return string
-	 */
-    function form_close() {
-	    return '</form>';
+    function wrapFormFields( $form ) {
+	    return '<form ' . self::attributes( $this->getFormAttributes() ) . '>' . $form . '</form>';
     }
 
 	/**
@@ -281,18 +202,18 @@ class Form {
 	 * @return string
 	 */
 	function render() {
-	    $output = $this->open();
+        $form = '';
 
-	    foreach( $this->fields as $name => $field ) {
-	        if ( empty($field['name']) ) {
-	            $field['name'] = $name;
-            }
-	        $output.= $this->render_field($field);
-        }
+		foreach( $this->fields as $name => $field ) {
+			if ( empty($field['name']) ) {
+				$field['name'] = $name;
+			}
+			$form.= $this->renderField($field);
+		}
 
-        $output.= $this->close();
+		$form = $this->wrapFormFields($form);
 
-	    return $output;
+	    return $this->style->wrapForm($form);
     }
 
 	/**
@@ -302,8 +223,9 @@ class Form {
 	 *
 	 * @return string
 	 */
-	function render_field( $field ){
-		$field = $this->make_field( $field );
+	function renderField( $field ){
+		$field = $this->fieldData( $field );
+		$types = $this->field_types;
 		$field_html = '';
 
 		// do not render fields users do not have access to.
@@ -312,10 +234,14 @@ class Form {
         }
 
 		// template the field
-		if ( isset( $this->field_types[ $field['type'] ] ) && is_callable( $this->field_types[ $field['type'] ] ) ){
-			ob_start();
-			call_user_func( $this->field_types[ $field['type'] ], $field );
-			$field_html = ob_get_clean();
+		if ( $types->get( $field['type'] ) && class_exists( $types->get( $field['type'] )['class'] ) ){
+		    $type_class = $types->get( $field['type'] )['class'];
+		    /** @var FieldInterface $type */
+		    $type = new $type_class();
+
+		    if ( is_a( $type, '\Osprey\Form\Field\FieldInterface' ) ) {
+			    $field_html = $type->render( $field );
+		    }
 		}
 
 		// do not wrap very simple fields
@@ -324,14 +250,7 @@ class Form {
 		}
 
 		// template the wrapper
-		$wrapper_html = $field_html;
-		$style = $this->get_form_style();
-
-		if ( is_callable( $style['field_wrapper'] ) ){
-			ob_start();
-			call_user_func( $style['field_wrapper'], $field, $field_html );
-			$wrapper_html = ob_get_clean();
-		}
+		$wrapper_html = $this->style->wrapField( $field, $field_html );;
 
 		return $wrapper_html;
 	}
@@ -343,7 +262,7 @@ class Form {
 	 *
 	 * @return array
 	 */
-	function make_field( $args = array() ){
+	function fieldData( $args = array() ){
 		$field = array_replace( $this->default_field_args, $args );
 		$field['name'] = sanitize_title( $args['name'] );
 
@@ -368,400 +287,35 @@ class Form {
         }
 
 		// gather field classes
-		if ( !is_array( $field['class'] ) ){
-			$field['class'] = array( $field['class'] );
+		if ( !is_array( $field['classes'] ) ){
+			$field['classes'] = [ $field['classes'] ];
 		}
-		$field['class'][] = 'field';
-		$field['class'][] = 'field-' . $this->form_args['style'];
-		$field['class'][] = 'field-type-' . $field['type'];
-		$field['class'] = implode( ' ', $field['class'] );
+		$field['classes'][] = 'field';
+		$field['classes'][] = 'field-' . $this->form_args['style'];
+		$field['classes'][] = 'field-type-' . $field['type'];
+		$field['classes'] = implode( ' ', $field['classes'] );
 
 		if ( empty( $field['id'] ) ) {
 			$field['id'] = 'edit--' . sanitize_title( $field['form_name'] );
 		}
+
 		return $field;
 	}
 
-	/**
-	 * Simple conversion of an array to tml attributes string
-	 *
-	 * @param array $array
-	 * @param string $prefix
-	 *
-	 * @return string
-	 */
-	function attributes( $array = array(), $prefix = '' ){
-		$html = '';
-
-		foreach( $array as $key => $value ){
-			if ( !empty( $value ) ) {
-				$value = esc_attr( $value );
-				$html .= " {$prefix}{$key}='{$value}'";
-			}
-		}
-
-		return $html;
-	}
 
 	/**
-	 * Single checkbox field has a hidden predecessor to provide a default value
-	 *
-	 * @param $field
-	 */
-	function template_checkbox( $field ){
-	    $hidden = array_replace( $field, array(
-			'type' => 'hidden',
-			'value' => 0,
-			'id' => $field['id'] . '--hidden',
-			'attributes' => array(),
-			'class' => 'field-hidden',
-		));
-		$this->template_input( $hidden );
-
-		if ( !empty( $field['value'] ) ) {
-			$field['attributes']['checked'] = 'checked';
-		}
-		$field['value'] = 'on';
-		$this->template_input( $field );
-	}
-
-	/**
-	 * Generic input field
-	 *
-	 * @param $field
-	 */
-	function template_input( $field ) {
-	    ?>
-        <input type="<?php echo esc_attr( $field['type'] ) ?>"
-               name="<?php echo esc_attr( $field['form_name'] ); ?>"
-               id="<?php echo esc_attr( $field['id'] ); ?>"
-               class="<?php echo esc_attr( $field['class'] ); ?>"
-               value="<?php echo esc_attr( $field['value'] ); ?>"
-			<?php echo $this->attributes( $field['attributes'] ); ?>
-        >
-		<?php
-	}
-
-	/**
-	 * Textarea
-	 *
-	 * @param $field
-	 */
-	function template_textarea( $field ) {
-		?>
-        <textarea name="<?php echo esc_attr( $field['form_name'] ); ?>"
-                  id="<?php echo esc_attr( $field['id'] ); ?>"
-                  class="<?php echo esc_attr( $field['class'] ); ?>"
-			<?php echo $this->attributes( $field['attributes'] ); ?>
-        ><?php echo $this->esc_textarea( $field['value'] ); ?></textarea>
-		<?php
-	}
-
-	/**
-	 * Help prevent excessive slashes and potential malicious code
-	 *
-	 * @param $value
-	 * @return string
-	 */
-	function esc_textarea( $value ){
-		return stripcslashes( esc_textarea( str_replace( "\\", "", $value ) ) );
-	}
-
-	/**
-	 * Group of checkboxes
-	 *  - expects an array of values as $field['value']
-	 *
-	 * @param $field
-	 */
-	function template_checkboxes( $field ){
-		$field['class'].= ' checkboxes-item';
-		$i = 0;
-		if ( !is_array( $field['value'] ) ) {
-			$field['value'] = array( $field['value'] => $field['value'] );
-		}
-
-		foreach( $field['options'] as $value => $details ){
-			// default to assuming not-array
-			$label = $details;
-			$description = null;
-			$data = null;
-
-			// if array is given, get the title, description, and data
-			if ( is_array( $details ) && isset( $details['title'] ) ){
-				$label = $details['title'];
-
-				if ( !empty( $details['description'] ) ){
-					$description = $details['description'];
-				}
-
-				if ( !empty( $details['data'] ) ) {
-					$data = $details['data'];
-				}
-			}
-
-			?>
-            <div class="checkboxes-wrapper">
-                <label for="<?php echo esc_attr( $field['id'] ); ?>--<?php echo $i; ?>">
-                    <input type="checkbox"
-                           name="<?php echo esc_attr( $field['form_name'] ); ?>[<?php echo esc_attr( $value ); ?>]"
-                           id="<?php echo esc_attr( $field['id'] ); ?>--<?php echo $i; ?>"
-                           class="<?php echo esc_attr( $field['class'] ); ?>"
-                           value="<?php echo esc_attr( $value ); ?>"
-						<?php checked( isset( $field['value'][ $value ] ) ); ?>
-						<?php if ( $data ) print $this->attributes( $data, 'data-' ); ?>
-                    >
-					<?php echo $label; ?>
-                </label>
-				<?php if ( $description ): ?>
-                    <p class="description"><?php echo $description; ?></p>
-				<?php endif; ?>
-            </div>
-			<?php
-			$i++;
-		}
-	}
-
-	/**
-	 * Select box
-	 *  - expects an array of options as $field['options']
-	 *
-	 * @param $field
-	 */
-	function template_select( $field ){
-		?>
-        <select name="<?php echo esc_attr( $field['form_name'] ); ?>"
-                id="<?php echo esc_attr( $field['id'] ); ?>"
-                class="<?php echo esc_attr( $field['class'] ); ?>"
-			<?php echo $this->attributes( $field['attributes'] ); ?> >
-			<?php foreach( $field['options'] as $value => $option ) : ?>
-                <option value="<?php echo esc_attr( $value ); ?>" <?php selected( $value, $field['value'] ); ?>><?php echo esc_html( $option ); ?></option>
-			<?php endforeach; ?>
-        </select>
-		<?php
-	}
-
-	/**
-	 * Simple item list
-	 *  - expects an array of items as $field['items']
-	 *
-	 * @param $field
-	 */
-	function template_item_list( $field ){
-		?>
-        <ul class="<?php echo esc_attr( $field['class'] ); ?>"
-	        <?php echo $this->attributes( $field['attributes'] ); ?>>
-			<?php
-			foreach ( $field['items'] as $item ) { ?>
-                <li><?php print $item; ?></li>
-				<?php
-			}
-			?>
-        </ul>
-		<?php
-	}
-
-	/**
-     * Generic output.
+     * Get the value of an item in the $_REQUEST array.
      *
-	 * @param $field
-	 */
-	function template_markup( $field ) {
-	    print $field['value'];
-    }
-
-
-	// **** styles ***** //
-
-
-	/**
-	 * Settings Table form style field wrapper HTML
-	 *
-	 * @param $field
-	 * @param $field_html
-	 */
-	function field_wrapper_table( $field, $field_html ){
-		?>
-        <tr  id="<?php echo esc_attr( $field['id'] ) ;?>--wrapper"
-             class="field-wrapper field-wrapper-table">
-            <th scope="row">
-                <?php if ( !empty( $field['title'] ) ) : ?>
-                    <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                        <?php echo $field['title']; ?>
-                    </label>
-                <?php endif; ?>
-            </th>
-            <td>
-				<?php echo $field_html; ?>
-
-				<?php if ( !empty( $field['description'] ) ) : ?>
-                    <p class="description"><?php echo $field['description']; ?></p>
-				<?php endif; ?>
-
-				<?php if ( !empty( $field['help'] ) ) : ?>
-                    <p class="description"><?php echo $field['help']; ?></p>
-				<?php endif; ?>
-            </td>
-        </tr>
-		<?php
-	}
-
-	/**
-	 * Settings table form style open HTML
-	 *
-	 * @return string
-	 */
-	function form_open_table(){
-		return '<table class="form-table">';
-	}
-
-	/**
-	 * Settings table form style close HTML
-	 *
-	 * @return string
-	 */
-	function form_close_table(){
-		return '</table>';
-	}
-
-	/**
-	 * Flat form style
-	 *
-	 * @param $field
-	 * @param $field_html
-	 */
-	function field_wrapper_flat( $field, $field_html ){
-	    ?>
-        <div id="<?php echo esc_attr( $field['id'] ) ;?>--wrapper"
-             class="field-wrapper field-wrapper-flat">
-
-            <?php if ( !empty( $field['title'] ) && $field['label_first']) : ?>
-                <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                    <?php echo $field['title']; ?>
-                </label>
-            <?php endif; ?>
-
-			<?php if ( !empty( $field['description'] ) ) : ?>
-                <p class="description"><?php echo $field['description']; ?></p>
-			<?php endif; ?>
-
-			<?php echo $field_html; ?>
-
-		    <?php if ( !empty( $field['title'] ) && !$field['label_first']) : ?>
-                <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                    <?php echo $field['title']; ?>
-                </label>
-            <?php endif; ?>
-
-			<?php if ( !empty($field['help']) ) : ?>
-                <p class="description"><?php echo $field['help']; ?></p>
-			<?php endif; ?>
-        </div>
-		<?php
-	}
-
-	/**
-	 * Inline form style
-	 *
-	 * @param $field
-	 * @param $field_html
-	 */
-	function field_wrapper_inline( $field, $field_html ){
-	    ?>
-        <span id="<?php echo esc_attr( $field['id'] ) ;?>--wrapper"
-             class="field-wrapper field-wrapper-inline">
-
-            <?php if ( !empty( $field['title'] ) && $field['label_first']) : ?>
-                <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                    <?php echo $field['title']; ?>
-                </label>
-            <?php endif; ?>
-
-			<?php if ( !empty( $field['description'] ) ) : ?>
-                <p class="description"><?php echo $field['description']; ?></p>
-			<?php endif; ?>
-
-			<?php echo $field_html; ?>
-
-		    <?php if ( !empty( $field['title'] ) && !$field['label_first']) : ?>
-                <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                    <?php echo $field['title']; ?>
-                </label>
-            <?php endif; ?>
-
-			<?php if ( !empty($field['help']) ) : ?>
-                <p class="description"><?php echo $field['help']; ?></p>
-			<?php endif; ?>
-        </span>
-		<?php
-	}
-
-	/**
-	 * Box form style
-	 *
-	 * @param $field
-	 * @param $field_html
-	 */
-	function field_wrapper_box( $field, $field_html ){
-	    ?>
-        <div id="<?php echo esc_attr( $field['id'] ) ;?>--wrapper"
-             class="field-wrapper field-wrapper-box box">
-
-            <h3>
-                <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                    <?php echo $field['title']; ?>
-                </label>
-            </h3>
-
-            <div>
-			<?php if ( !empty( $field['description'] ) ) : ?>
-                <p class="description"><?php echo $field['description']; ?></p>
-			<?php endif; ?>
-
-			<?php echo $field_html; ?>
-
-		    <?php if ( !empty( $field['title'] ) && !$field['label_first']) : ?>
-                <label for="<?php echo esc_attr( $field['id'] ); ?>" class="field-label">
-                    <?php echo $field['title']; ?>
-                </label>
-            <?php endif; ?>
-
-			<?php if ( !empty($field['help']) ) : ?>
-                <p class="description"><?php echo $field['help']; ?></p>
-			<?php endif; ?>
-            </div>
-        </div>
-		<?php
-	}
-
-	/**
-	 * Flat form style opening HTML
-	 *
-	 * @return string
-	 */
-	function form_open_flat(){
-		return '<div class="form">';
-	}
-
-	/**
-	 * Flat form style closing HTML
-	 *
-	 * @return string
-	 */
-	function form_close_flat(){
-		return '</div>';
-	}
-
-	/**
 	 * @param $field_name
      *
      * @return mixed|NULL
 	 */
-	function submitted_value( $field_name ) {
+	function submittedValue( $field_name ) {
 	    if ( $_REQUEST[$this->form_args['field_prefix']] ) {
 	        $keys = explode('][', $field_name);
 	        array_unshift($keys, $this->form_args['field_prefix']);
 
-	        return $this->array_query($keys, $_REQUEST);
+	        return $this->arrayQuery($keys, $_REQUEST);
         }
 
         return null;
@@ -775,7 +329,7 @@ class Form {
 	 *
 	 * @return mixed|null
 	 */
-	function array_query( $keys, $data ){
+	function arrayQuery( $keys, $data ){
 		if ( empty( $keys ) ){
 			return $data;
 		}
@@ -791,7 +345,7 @@ class Form {
 			// if there are remaining keys and this key leads to an array,
 			// recurse using the remaining keys
 			else if ( is_array( $data[ $key ] ) ) {
-				return $this->array_query( $keys, $data[ $key ] );
+				return $this->arrayQuery( $keys, $data[ $key ] );
 			}
 			// there are remaining keys, but this item is not an array
 			else {

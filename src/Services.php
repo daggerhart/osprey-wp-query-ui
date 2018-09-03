@@ -2,9 +2,91 @@
 
 namespace Osprey;
 
-class Services {
+class Services extends Registry {
 
-	public static function types() {
+	/**
+	 * @return Registry
+	 */
+	public static function formFields() {
+		static $registry;
+
+		if (is_null($registry)) {
+			$registry = new Registry([
+				'text' => [
+					'class' => '\Osprey\Form\Field\Input'
+				],
+				'hidden' => [
+					'class' => '\Osprey\Form\Field\Input'
+				],
+				'number' => [
+					'class' => '\Osprey\Form\Field\Input'
+				],
+				'email' => [
+					'class' => '\Osprey\Form\Field\Input'
+				],
+				'submit' => [
+					'class' => '\Osprey\Form\Field\Input'
+				],
+				'button' => [
+					'class' => '\Osprey\Form\Field\Input'
+				],
+				'textarea' => [
+					'class' => '\Osprey\Form\Field\Textarea'
+				],
+				'checkbox' => [
+					'class' => '\Osprey\Form\Field\Checkbox'
+				],
+				'checkboxes' => [
+					'class' => '\Osprey\Form\Field\Checkboxes'
+				],
+				'select' => [
+					'class' => '\Osprey\Form\Field\Select'
+				],
+				'item_list' => [
+					'class' => '\Osprey\Form\Field\ItemList'
+				],
+				'markup' => [
+					'class' => '\Osprey\Form\Field\Markup'
+				],
+			]);
+		}
+
+		return $registry;
+	}
+
+	/**
+	 * @return Registry
+	 */
+	public static function formStyles() {
+		static $registry;
+
+		if (is_null($registry)) {
+			$registry = new Registry([
+				'default' => [
+					'class' => '\Osprey\Form\Style\Flat'
+				],
+				'flat' => [
+					'class' => '\Osprey\Form\Style\Flat',
+				],
+				'box' => [
+					'class' => '\Osprey\Form\Style\Box',
+				],
+				'inline' => [
+					'class' => '\Osprey\Form\Style\Inline',
+				],
+				'table' => [
+					'class' => '\Osprey\Form\Style\Table',
+				],
+			]);
+		}
+
+		return $registry;
+	}
+
+	/**
+	 * @return Registry
+	 */
+	public static function queryTypes() {
 		static $registry;
 
 		if (is_null($registry)) {

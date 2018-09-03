@@ -2,7 +2,7 @@
 
 namespace Osprey\Query;
 
-use Osprey\Entity\Comment;
+use Osprey\Entity\AbstractEntity;
 
 /**
  * Class Comments
@@ -14,15 +14,16 @@ class Comments extends AbstractQuery {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function execute( $callback = null ) {
+	public function execute( $entity_class = null, $callback = null ) {
 		$this->query = new \WP_Comment_Query( $this->arguments );
 
 		foreach ( $this->query->get_comments() as $comment ) {
-			$item = new Comment( $comment );
+			/** @var AbstractEntity $item */
+			$item = is_a($entity_class, '\Osprey\Entity\AbstractEntity') ? new $entity_class( $comment ) : null;
 			$this->results[ $item->id() ] = $item;
 
 			if ( is_callable( $callback ) ) {
-				call_user_func( $callback, $item );
+				call_user_func( $callback, $item, $comment );
 			}
 		}
 

@@ -26,11 +26,11 @@ interface RegistryInterface {
 	 *
 	 * @param $key
 	 *   The name of the item in the registry.
-	 * @param $class
+	 * @param $data
 	 *   The new class that should represent the item in the registry.
 	 *
 	 * @void
 	 */
-	public function set( $key, $class );
+	public function set( $key, $data );
 
 }

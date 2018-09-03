@@ -30,7 +30,7 @@ class MetaBoxQueryForm extends AbstractMetaBox {
 		$query_args = get_post_meta($post->ID, '_osprey_query_args', TRUE);
 		$query_display = get_post_meta($post->ID, '_osprey_query_display', TRUE);
 
-		$type = Services::types()->get($query_type);
+		$type = Services::queryTypes()->get($query_type);
 
 		if (empty($type)) {
 			return 'query type not recognized';
@@ -88,7 +88,7 @@ class MetaBoxQueryForm extends AbstractMetaBox {
 					break;
 			}
 
-			print $form->render_field($field);
+			print $form->renderField($field);
 		}
 	}
 
@@ -106,13 +106,13 @@ class MetaBoxQueryForm extends AbstractMetaBox {
 		$query_args = get_post_meta($post_id, '_osprey_query_args', TRUE);
 		$query_display = get_post_meta($post_id, '_osprey_query_display', TRUE);
 
-		$type = Services::types()->get($query_type);
+		$type = Services::queryTypes()->get($query_type);
 		$form = $this->form();
 		/** @var QueryInterface $query */
 		$query = new $type['query_class']([]);
 		$schema = $query->schema();
 
-		$submitted_args = $form->submitted_value('args');
+		$submitted_args = $form->submittedValue('args');
 
 		$args = [];
 

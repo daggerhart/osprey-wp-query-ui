@@ -2,6 +2,7 @@
 
 namespace Osprey\Query;
 
+use Osprey\Entity\AbstractEntity;
 use Osprey\Entity\User;
 
 /**
@@ -14,15 +15,17 @@ class Users extends AbstractQuery {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function execute( $callback = NULL ) {
+	public function execute( $entity_class = null, $callback = null ) {
 		$this->query = new \WP_User_Query( $this->arguments );
 
 		foreach ( $this->query->get_results() as $user ) {
-			$item = new User( $user );
+			$user = new User( $user );
+			/** @var AbstractEntity $item */
+			$item = is_a($entity_class, '\Osprey\Entity\AbstractEntity') ? new $entity_class( $user ) : null;
 			$this->results[ $item->id() ] = $item;
 
 			if ( is_callable( $callback ) ) {
-				call_user_func( $callback, $user );
+				call_user_func( $callback, $item, $user );
 			}
 		}
 

@@ -63,7 +63,7 @@ class Query {
 	 */
 	static public function metaBoxes($post) {
 		$query_type = get_post_meta( $post->ID, '_osprey_query_type', TRUE );
-		$registry = Services::types();
+		$registry = Services::queryTypes();
 		$type = $registry->get( $query_type );
 
 		$wizard = new MetaBoxWizard();
